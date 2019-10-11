@@ -94,12 +94,11 @@ int verbose = 0;
 int keep_resolving = 1;
 
 #ifdef ANDROID
-int log_tx_rx  = 0;
 int vpn        = 0;
 uint64_t tx    = 0;
 uint64_t rx    = 0;
 ev_tstamp last = 0;
-char *prefix;
+char *stat_path = NULL;
 #endif
 
 #include "includeobfs.h" // I don't want to modify makefile
@@ -372,7 +371,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 }
                 // SSR end
 #ifdef ANDROID
-                if (log_tx_rx)
                     tx += buf->len;
 #endif
             }
@@ -931,13 +929,11 @@ server_send_cb(EV_P_ ev_io *w, int revents)
 static void
 stat_update_cb()
 {
-    if (log_tx_rx) {
         ev_tstamp now = ev_time();
         if (now - last > 1.0) {
             send_traffic_stat(tx, rx);
             last = now;
         }
-    }
 }
 
 #endif
@@ -997,7 +993,6 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
 
     if (!remote->direct) {
 #ifdef ANDROID
-        if (log_tx_rx)
             rx += server->buf->len;
 #endif
         if ( r == 0 )
@@ -1517,7 +1512,7 @@ main(int argc, char **argv)
     USE_TTY();
 
 #ifdef ANDROID
-    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:L:a:n:P:xhuUvVA6"
+    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:L:a:n:S:huUvVA6"
                             "O:o:G:g:",
                             long_options, &option_index)) != -1)
 #else
@@ -1625,14 +1620,11 @@ main(int argc, char **argv)
                 break;
 #ifdef ANDROID
             case 'V':
-            vpn = 1;
-            break;
-        case 'P':
-            prefix = optarg;
-            break;
-        case 'x':
-            log_tx_rx = 1;
-            break;
+                vpn = 1;
+                break;
+            case 'S':
+                stat_path = optarg;
+                break;
 #endif
             case '?':
                 // The option character is not recognized.
